@@ -8,6 +8,7 @@ mod discovery;
 mod edge;
 mod net;
 mod ui;
+mod version;
 
 use anyhow::Result;
 use kami_bridge::{BridgeEvent, InputBridge, ScreenGeometry};
@@ -36,11 +37,18 @@ pub struct PeerInfo {
 
 fn main() -> Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-    info!("watashi starting");
+    info!("{}", version::oneline());
 
     let args: Vec<String> = std::env::args().collect();
 
     match args.get(1).map(|s| s.as_str()) {
+        Some("--version") | Some("-V") => {
+            println!("{}", version::oneline());
+            println!("  build:  {}", version::BUILD_DATE);
+            println!("  commit: {}{}", version::GIT_HASH, version::GIT_DIRTY);
+            println!("  target: {}", version::TARGET);
+            println!("  rustc:  {}", version::RUSTC);
+        }
         Some("--server") => run_server(args.get(2))?,
         Some("--client") => {
             let addr = args
@@ -51,7 +59,7 @@ fn main() -> Result<()> {
         Some("--discover") => run_discover()?,
         Some("--auto") => run_auto()?,
         Some("--help") | Some("-h") => {
-            println!("watashi (渡し) — cross-platform input sharing");
+            println!("{}", version::oneline());
             println!();
             println!("Usage:");
             println!("  watashi                         Launch GUI (server + mDNS discovery)");
@@ -59,6 +67,7 @@ fn main() -> Result<()> {
             println!("  watashi --client <addr:port>    Connect to server");
             println!("  watashi --discover              Discover peers on LAN via mDNS");
             println!("  watashi --auto                  Auto-discover and connect (mDNS)");
+            println!("  watashi --version               Show version and build info");
             println!("  watashi --help                  Show this help");
         }
         _ => run_gui()?,
