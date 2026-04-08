@@ -70,7 +70,7 @@ Binaries hosted on R2 via `cdn` package. Platform detection + download via WASM 
 ```bash
 # 1. Download from watashi.gftd.ai (platform auto-detected)
 #    or build locally:
-cd native/sharemouse-host
+cd native/watashi-host
 cargo build --release --target x86_64-pc-windows-msvc
 
 # 2. Run (allow through Windows Firewall when prompted)
@@ -84,7 +84,7 @@ watashi.exe --client <ip>   # manual connect
 ## Directory Structure
 
 ```
-native/sharemouse-host/     Rust binary (macOS + Windows + Linux)
+native/watashi-host/     Rust binary (macOS + Windows + Linux)
   src/main.rs               Entry (server/client/discover/auto/ui modes)
   src/discovery.rs           mDNS-SD peer discovery (mdns-sd crate)
   src/edge.rs               Screen edge detection + cursor transition
@@ -97,7 +97,7 @@ wasm/                       MagatamaApp coordination (peer registry, pairing, do
 
 ```bash
 # macOS (Apple Silicon)
-cd native/sharemouse-host
+cd native/watashi-host
 cargo build --release
 
 # macOS (Intel)
