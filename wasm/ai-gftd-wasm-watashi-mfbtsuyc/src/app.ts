@@ -907,9 +907,104 @@ export async function runHeartbeat(sdk: HostSDK): Promise<{ ok: boolean; actions
   return { ok: true, actions };
 }
 
+// ─── Landing Page HTML ───
+
+/** Watashi download + info page served at / and /embed. */
+function landingHTML(): string {
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Watashi (渡し) — Cross-Platform Input Sharing</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.hero{text-align:center;padding:48px 24px 32px}
+.hero h1{font-size:2.4rem;font-weight:700;letter-spacing:-0.02em}
+.hero h1 .jp{font-size:1.4rem;opacity:0.7;font-weight:400}
+.hero p{margin-top:12px;font-size:1.1rem;opacity:0.8;max-width:520px}
+.badge{display:inline-block;margin-top:16px;padding:4px 12px;border-radius:12px;font-size:0.8rem;background:#1f6feb33;color:#58a6ff;border:1px solid #1f6feb55}
+.downloads{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;padding:0 24px 40px;max-width:640px;width:100%}
+.dl-card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;text-align:center;transition:border-color 0.2s}
+.dl-card:hover{border-color:#58a6ff}
+.dl-card .icon{font-size:2rem;margin-bottom:8px}
+.dl-card h3{font-size:1rem;margin-bottom:4px}
+.dl-card p{font-size:0.8rem;opacity:0.6}
+.dl-card a{display:inline-block;margin-top:12px;padding:8px 20px;background:#238636;color:#fff;border-radius:8px;text-decoration:none;font-size:0.9rem;font-weight:500;transition:background 0.2s}
+.dl-card a:hover{background:#2ea043}
+.dl-card a.soon{background:#30363d;cursor:default;pointer-events:none}
+.section{max-width:640px;width:100%;padding:0 24px 32px}
+.section h2{font-size:1.2rem;margin-bottom:12px;color:#58a6ff}
+.code{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;font-family:'SF Mono',Consolas,monospace;font-size:0.85rem;overflow-x:auto;line-height:1.6}
+.code .comment{color:#8b949e}
+.features{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.feat{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px}
+.feat h4{font-size:0.9rem;margin-bottom:4px}
+.feat p{font-size:0.78rem;opacity:0.7}
+footer{padding:24px;opacity:0.5;font-size:0.8rem}
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>Watashi <span class="jp">渡し</span></h1>
+  <p>macOS / Windows / Linux 間でマウスとキーボードをシームレスに共有。暗���化 UDP (ChaCha20) + mDNS 自動発見。</p>
+  <span class="badge">ChaCha20-Poly1305 + X25519 暗号化</span>
+</div>
+
+<div class="downloads">
+  <div class="dl-card">
+    <div class="icon">&#63743;</div>
+    <h3>macOS</h3>
+    <p>Apple Silicon / Intel</p>
+    <a href="/xrpc/ai.gftd.apps.watashi.getDownload?platform=macos-arm64" class="soon">Coming Soon</a>
+  </div>
+  <div class="dl-card">
+    <div class="icon">&#9109;</div>
+    <h3>Windows</h3>
+    <p>64-bit (x64)</p>
+    <a href="/xrpc/ai.gftd.apps.watashi.getDownload?platform=windows-x64" class="soon">Coming Soon</a>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Quick Start</h2>
+  <div class="code">
+<span class="comment"># macOS (server) — auto-broadcasts via mDNS</span>
+watashi --server
+
+<span class="comment"># Windows (client) — auto-discovers on LAN</span>
+watashi.exe --auto
+
+<span class="comment"># or discover all peers on LAN</span>
+watashi --discover
+  </div>
+</div>
+
+<div class="section">
+  <h2>Features</h2>
+  <div class="features">
+    <div class="feat"><h4>mDNS Auto-Discovery</h4><p>IP 入力不要。同じ LAN なら自動接続</p></div>
+    <div class="feat"><h4>WebAuthn Pairing</h4><p>VPN/リモートも Passkey で安全にペアリング</p></div>
+    <div class="feat"><h4>Clipboard Sync</h4><p>テキスト・画像・ファイルをデバイス間で同期</p></div>
+    <div class="feat"><h4>File Transfer</h4><p>ドラッグ&ドロップでファイル転送 (1GB)</p></div>
+  </div>
+</div>
+
+<footer>watashi.gftd.ai — AI Agent-First Platform</footer>
+<script>window.parent?.postMessage({type:'gftd:embed:ready',nanoid:'mfbtsuyc'},'*')</script>
+</body>
+</html>`;
+}
+
 export default createWorkerExport((sdk: HostSDK) => {
   appId = sdk.pds.selfNanoid ?? "";
   actorDID = sdk.pds.selfRepo ?? "";
+
+  // Landing page + embed
+  sdk.router.get("/", (c: any) => c.html(landingHTML()));
+  sdk.router.get("/embed", (c: any) => c.html(landingHTML(), 200, { "Access-Control-Allow-Origin": "*" }));
+
   sdk.app
     .command(
       `${NS}.registerPeer`,
