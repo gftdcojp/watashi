@@ -46,8 +46,9 @@ fn build_scene(
         x: 20.0, y: 16.0, size: 22.0, color: palette::WHITE,
     });
     text.push(TextNode {
-        id: "subtitle".into(), content: "Cross-Platform Input Sharing".into(),
-        x: w - 260.0, y: 20.0, size: 14.0, color: Color([1.0, 1.0, 1.0, 0.6]),
+        id: "subtitle".into(),
+        content: format!("v{} — Cross-Platform Input Sharing", crate::version::VERSION),
+        x: w - 310.0, y: 20.0, size: 14.0, color: Color([1.0, 1.0, 1.0, 0.6]),
     });
 
     // ─── Status card ───
@@ -151,9 +152,14 @@ fn build_scene(
         border: Some(Color([0.0, 0.0, 0.0, 0.05])), border_width: 1.0, radius: 0.0,
     });
     text.push(TextNode {
-        id: "bar-text".into(),
-        content: "watashi.gftd.ai — ChaCha20-Poly1305 encrypted".into(),
+        id: "bar-version".into(),
+        content: crate::version::short(),
         x: 20.0, y: bar_y + 12.0, size: 12.0, color: palette::GRAY,
+    });
+    text.push(TextNode {
+        id: "bar-enc".into(),
+        content: "ChaCha20-Poly1305 encrypted".into(),
+        x: w - 220.0, y: bar_y + 12.0, size: 12.0, color: palette::GRAY,
     });
 
     KamiScene { panels, text, meters }
