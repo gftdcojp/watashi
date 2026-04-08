@@ -28,6 +28,7 @@ const inbox = createInboxBuffer();
 
 let appId = "";
 let actorDID = "";
+let _pds: any = null;
 
 // ─── Graph Labels ───
 // Domain-specific Cypher node labels for cross-platform input sharing graph.
@@ -910,6 +911,7 @@ export async function runHeartbeat(sdk: HostSDK): Promise<{ ok: boolean; actions
 export default createWorkerExport((sdk: HostSDK) => {
   appId = sdk.pds.selfNanoid ?? "";
   actorDID = sdk.pds.selfRepo ?? "";
+  _pds = sdk.pds;
 
   sdk.app
     .command(
