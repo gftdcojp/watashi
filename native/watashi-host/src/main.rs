@@ -254,16 +254,19 @@ fn run_auto() -> Result<()> {
     Ok(())
 }
 
-/// Launch GUI: server + mDNS broadcast + KAMI window showing live peer discovery.
+/// Launch GUI: mDNS discovery + KAMI status window.
+/// Input capture is deferred until a peer connects and sharing is activated.
+/// No Input Monitoring permission required at launch.
 fn run_gui() -> Result<()> {
     let port = 4819u16;
-    let addr: std::net::SocketAddr = format!("0.0.0.0:{port}").parse().unwrap();
 
-    info!("launching Watashi GUI (server on port {port} + mDNS)");
+    info!("launching Watashi GUI (mDNS discovery on port {port})");
 
-    let bridge = kami_bridge::create_bridge();
-    let screens = bridge.screens()?;
-    let screen_count = screens.len();
+    // Detect screens without starting capture (no permission required)
+    let screen_count = kami_bridge::create_bridge()
+        .screens()
+        .map(|s| s.len())
+        .unwrap_or(1);
     info!("detected {screen_count} screen(s)");
 
     // Register on mDNS
@@ -271,47 +274,11 @@ fn run_gui() -> Result<()> {
     let platform = if cfg!(target_os = "macos") { "macos" }
         else if cfg!(target_os = "windows") { "windows" }
         else { "linux" };
-    if let Err(e) = mdns.register("Watashi Server", port, platform, screen_count as u32) {
+    if let Err(e) = mdns.register("Watashi", port, platform, screen_count as u32) {
         error!("mDNS registration failed: {e}");
     }
 
-    // Start KNP server in background
-    let server = Arc::new(Mutex::new(net::start_server(addr)?));
-    let capture_rx = bridge.start_capture()?;
-    let (net_inject_tx, net_inject_rx) = mpsc::channel::<BridgeEvent>();
-    let forwarding = Arc::new(AtomicBool::new(false));
-
-    // Network receive thread
-    let server_recv = Arc::clone(&server);
-    let forwarding_recv = forwarding.clone();
-    std::thread::spawn(move || loop {
-        for event in server_recv.lock().unwrap().poll() {
-            match event {
-                net::NetEvent::PeerConnected { addr } => info!("peer connected: {addr}"),
-                net::NetEvent::InputEvent { event, .. } => { let _ = net_inject_tx.send(event); }
-                net::NetEvent::PeerDisconnected { addr } => {
-                    info!("peer disconnected: {addr}");
-                    forwarding_recv.store(false, Ordering::SeqCst);
-                }
-            }
-        }
-        std::thread::sleep(Duration::from_micros(500));
-    });
-
-    // Input forwarding thread (no inject — GUI mode is primarily for status display)
-    let server_fwd = Arc::clone(&server);
-    let forwarding_fwd = forwarding.clone();
-    std::thread::spawn(move || loop {
-        while let Ok(event) = capture_rx.try_recv() {
-            if forwarding_fwd.load(Ordering::SeqCst) {
-                server_fwd.lock().unwrap().broadcast_event(&event);
-            }
-        }
-        // Drain network inject events (logged only in GUI mode)
-        while let Ok(_event) = net_inject_rx.try_recv() {}
-        std::thread::sleep(Duration::from_micros(500));
-    });
-
     // Launch KAMI GUI (blocks until window closes)
+    // Server + input capture start when user activates sharing from GUI
     ui::run_ui_with_discovery(mdns, port, screen_count)
 }
