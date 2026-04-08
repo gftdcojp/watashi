@@ -50,17 +50,18 @@ fn main() -> Result<()> {
         }
         Some("--discover") => run_discover()?,
         Some("--auto") => run_auto()?,
-        Some("--ui") => run_config_ui()?,
-        _ => {
+        Some("--help") | Some("-h") => {
             println!("watashi (渡し) — cross-platform input sharing");
             println!();
             println!("Usage:");
-            println!("  watashi --server [bind-addr]    Start as server (default 0.0.0.0:4819)");
+            println!("  watashi                         Launch GUI (server + mDNS discovery)");
+            println!("  watashi --server [bind-addr]    Headless server (default 0.0.0.0:4819)");
             println!("  watashi --client <addr:port>    Connect to server");
             println!("  watashi --discover              Discover peers on LAN via mDNS");
             println!("  watashi --auto                  Auto-discover and connect (mDNS)");
-            println!("  watashi --ui                    Open configuration UI");
+            println!("  watashi --help                  Show this help");
         }
+        _ => run_gui()?,
     }
 
     Ok(())
@@ -253,8 +254,64 @@ fn run_auto() -> Result<()> {
     Ok(())
 }
 
-/// Open KAMI-powered configuration UI.
-fn run_config_ui() -> Result<()> {
-    info!("opening configuration UI");
-    ui::run_ui()
+/// Launch GUI: server + mDNS broadcast + KAMI window showing live peer discovery.
+fn run_gui() -> Result<()> {
+    let port = 4819u16;
+    let addr: std::net::SocketAddr = format!("0.0.0.0:{port}").parse().unwrap();
+
+    info!("launching Watashi GUI (server on port {port} + mDNS)");
+
+    let bridge = kami_bridge::create_bridge();
+    let screens = bridge.screens()?;
+    let screen_count = screens.len();
+    info!("detected {screen_count} screen(s)");
+
+    // Register on mDNS
+    let mdns = discovery::Discovery::new()?;
+    let platform = if cfg!(target_os = "macos") { "macos" }
+        else if cfg!(target_os = "windows") { "windows" }
+        else { "linux" };
+    if let Err(e) = mdns.register("Watashi Server", port, platform, screen_count as u32) {
+        error!("mDNS registration failed: {e}");
+    }
+
+    // Start KNP server in background
+    let server = Arc::new(Mutex::new(net::start_server(addr)?));
+    let capture_rx = bridge.start_capture()?;
+    let (net_inject_tx, net_inject_rx) = mpsc::channel::<BridgeEvent>();
+    let forwarding = Arc::new(AtomicBool::new(false));
+
+    // Network receive thread
+    let server_recv = Arc::clone(&server);
+    let forwarding_recv = forwarding.clone();
+    std::thread::spawn(move || loop {
+        for event in server_recv.lock().unwrap().poll() {
+            match event {
+                net::NetEvent::PeerConnected { addr } => info!("peer connected: {addr}"),
+                net::NetEvent::InputEvent { event, .. } => { let _ = net_inject_tx.send(event); }
+                net::NetEvent::PeerDisconnected { addr } => {
+                    info!("peer disconnected: {addr}");
+                    forwarding_recv.store(false, Ordering::SeqCst);
+                }
+            }
+        }
+        std::thread::sleep(Duration::from_micros(500));
+    });
+
+    // Input forwarding thread (no inject — GUI mode is primarily for status display)
+    let server_fwd = Arc::clone(&server);
+    let forwarding_fwd = forwarding.clone();
+    std::thread::spawn(move || loop {
+        while let Ok(event) = capture_rx.try_recv() {
+            if forwarding_fwd.load(Ordering::SeqCst) {
+                server_fwd.lock().unwrap().broadcast_event(&event);
+            }
+        }
+        // Drain network inject events (logged only in GUI mode)
+        while let Ok(_event) = net_inject_rx.try_recv() {}
+        std::thread::sleep(Duration::from_micros(500));
+    });
+
+    // Launch KAMI GUI (blocks until window closes)
+    ui::run_ui_with_discovery(mdns, port, screen_count)
 }
