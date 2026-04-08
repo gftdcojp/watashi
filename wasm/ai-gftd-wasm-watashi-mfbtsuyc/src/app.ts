@@ -57,7 +57,7 @@ const SUPPORTED_PLATFORMS = ["macos", "windows", "linux"] as const;
 
 /** Register a peer device with its screen geometries. */
 async function cmdRegisterPeer(
-  sdk: HostSDK,
+  _ctx: unknown,
   payload: Uint8Array,
 ): Promise<unknown> {
   const body = JSON.parse(new TextDecoder().decode(payload));
@@ -94,7 +94,7 @@ async function cmdRegisterPeer(
   }
 
   const rkey = genID("peer");
-  sdk.pds.dispatch({
+  _pds.dispatch({
     type: "com.atproto.repo.createRecord",
     payload: {
       collection: `${NS}.peer`,
@@ -131,7 +131,7 @@ async function cmdRegisterPeer(
 
 /** Save screen layout configuration (which peer at which edge). */
 async function cmdSaveLayout(
-  sdk: HostSDK,
+  _ctx: unknown,
   payload: Uint8Array,
 ): Promise<unknown> {
   const body = JSON.parse(new TextDecoder().decode(payload));
@@ -145,7 +145,7 @@ async function cmdSaveLayout(
     };
   };
 
-  sdk.pds.dispatch({
+  _pds.dispatch({
     type: "com.atproto.repo.createRecord",
     payload: {
       collection: `${NS}.layout`,
@@ -181,7 +181,7 @@ async function cmdSaveLayout(
 
 /** Get layout for a peer. */
 async function cmdGetLayout(
-  _sdk: HostSDK,
+  _ctx: unknown,
   payload: Uint8Array,
 ): Promise<unknown> {
   const body = JSON.parse(new TextDecoder().decode(payload));
@@ -210,7 +210,7 @@ async function cmdGetLayout(
 
 /** List all registered peers. */
 async function cmdListPeers(
-  _sdk: HostSDK,
+  _ctx: unknown,
   _payload: Uint8Array,
 ): Promise<unknown> {
   const rows = await cypherQueryAsync(
@@ -228,7 +228,7 @@ async function cmdListPeers(
 
 /** Create a sharing session between peers. Validates peer count and platform compatibility. */
 async function cmdCreateSession(
-  sdk: HostSDK,
+  _ctx: unknown,
   payload: Uint8Array,
 ): Promise<unknown> {
   const body = JSON.parse(new TextDecoder().decode(payload));
@@ -257,7 +257,7 @@ async function cmdCreateSession(
   }
 
   const sessionId = genID("ses");
-  sdk.pds.dispatch({
+  _pds.dispatch({
     type: "com.atproto.repo.createRecord",
     payload: {
       collection: `${NS}.session`,
@@ -300,7 +300,7 @@ async function cmdCreateSession(
 
 /** Sync clipboard content between peers. Validates size limits and content type. */
 async function cmdSyncClipboard(
-  sdk: HostSDK,
+  _ctx: unknown,
   payload: Uint8Array,
 ): Promise<unknown> {
   const body = JSON.parse(new TextDecoder().decode(payload));
@@ -327,7 +327,7 @@ async function cmdSyncClipboard(
   }
 
   const syncId = genID("clip");
-  sdk.pds.dispatch({
+  _pds.dispatch({
     type: "com.atproto.repo.createRecord",
     payload: {
       collection: `${NS}.clipboardSync`,
@@ -360,7 +360,7 @@ async function cmdSyncClipboard(
 
 /** Initiate file transfer between peers. Validates file size and transfer direction. */
 async function cmdInitiateTransfer(
-  sdk: HostSDK,
+  _ctx: unknown,
   payload: Uint8Array,
 ): Promise<unknown> {
   const body = JSON.parse(new TextDecoder().decode(payload));
@@ -395,7 +395,7 @@ async function cmdInitiateTransfer(
   }
 
   const transferId = genID("xfr");
-  sdk.pds.dispatch({
+  _pds.dispatch({
     type: "com.atproto.repo.createRecord",
     payload: {
       collection: `${NS}.fileTransfer`,
@@ -430,7 +430,7 @@ async function cmdInitiateTransfer(
 
 /** Record peer heartbeat to track online status. Marks peer as online/offline based on timing. */
 async function cmdPeerHeartbeat(
-  _sdk: HostSDK,
+  _ctx: unknown,
   payload: Uint8Array,
 ): Promise<unknown> {
   const body = JSON.parse(new TextDecoder().decode(payload));
@@ -463,7 +463,7 @@ async function cmdPeerHeartbeat(
 
 /** Record an audit log entry for security-sensitive operations. */
 async function cmdRecordAudit(
-  sdk: HostSDK,
+  _ctx: unknown,
   payload: Uint8Array,
 ): Promise<unknown> {
   const body = JSON.parse(new TextDecoder().decode(payload));
@@ -484,7 +484,7 @@ async function cmdRecordAudit(
   }
 
   const auditId = genID("aud");
-  sdk.pds.dispatch({
+  _pds.dispatch({
     type: "com.atproto.repo.createRecord",
     payload: {
       collection: `${NS}.auditLog`,
@@ -526,7 +526,7 @@ type ReleasePlatformKey = keyof typeof RELEASE_PLATFORMS;
 
 /** Register a new binary release for download. Stores metadata in graph + AT Record. */
 async function cmdPublishRelease(
-  sdk: HostSDK,
+  _ctx: unknown,
   payload: Uint8Array,
 ): Promise<unknown> {
   const body = JSON.parse(new TextDecoder().decode(payload));
@@ -549,7 +549,7 @@ async function cmdPublishRelease(
   const releaseId = genID("rel");
   const meta = RELEASE_PLATFORMS[platform];
 
-  sdk.pds.dispatch({
+  _pds.dispatch({
     type: "com.atproto.repo.createRecord",
     payload: {
       collection: `${NS}.release`,
@@ -585,7 +585,7 @@ async function cmdPublishRelease(
 
 /** Get download URL for the latest release matching the requested platform. */
 async function cmdGetDownload(
-  _sdk: HostSDK,
+  _ctx: unknown,
   payload: Uint8Array,
 ): Promise<unknown> {
   const body = JSON.parse(new TextDecoder().decode(payload));
@@ -630,7 +630,7 @@ async function cmdGetDownload(
 
 /** List all available releases grouped by version. */
 async function cmdListReleases(
-  _sdk: HostSDK,
+  _ctx: unknown,
   _payload: Uint8Array,
 ): Promise<unknown> {
   const rows = await cypherQueryAsync(
@@ -652,7 +652,7 @@ async function cmdListReleases(
  * Creates a pairing challenge that the remote device completes via WebAuthn assertion.
  */
 async function cmdInitiatePairing(
-  sdk: HostSDK,
+  _ctx: unknown,
   payload: Uint8Array,
 ): Promise<unknown> {
   const body = JSON.parse(new TextDecoder().decode(payload));
@@ -680,7 +680,7 @@ async function cmdInitiatePairing(
     ? String(parseInt(challenge.slice(0, 8), 16) % 1000000).padStart(6, "0")
     : undefined;
 
-  sdk.pds.dispatch({
+  _pds.dispatch({
     type: "com.atproto.repo.createRecord",
     payload: {
       collection: `${NS}.pairing`,
@@ -738,7 +738,7 @@ async function cmdInitiatePairing(
 
 /** Complete a pairing request from the remote device side. */
 async function cmdCompletePairing(
-  sdk: HostSDK,
+  _ctx: unknown,
   payload: Uint8Array,
 ): Promise<unknown> {
   const body = JSON.parse(new TextDecoder().decode(payload));
@@ -799,7 +799,7 @@ async function cmdCompletePairing(
     },
   );
 
-  sdk.pds.dispatch({
+  _pds.dispatch({
     type: "app.bsky.feed.post",
     payload: {
       text: `Device paired: ${remotePeerId} ↔ ${pairing.localPeerId} via ${pairing.method}`,
@@ -819,7 +819,7 @@ async function cmdCompletePairing(
 
 /** Coverage stats for watashi graph entities. */
 async function cmdCoverageStats(
-  _sdk: HostSDK,
+  _ctx: unknown,
   _payload: Uint8Array,
 ): Promise<unknown> {
   const [peers, sessions, clipboards, transfers, audits, releases, pairings] = await Promise.all([
@@ -912,6 +912,24 @@ export default createWorkerExport((sdk: HostSDK) => {
   appId = sdk.pds.selfNanoid ?? "";
   actorDID = sdk.pds.selfRepo ?? "";
   _pds = sdk.pds;
+
+  // Blob download route: serve release binaries from CDN_R2
+  const cdnR2 = (sdk.pds as any).cdnR2 as any;
+  sdk.router.get("/api/blob/*", async (c: any) => {
+    if (!cdnR2) return c.json({ error: "storage not configured" }, 503);
+    const key = c.req.path.replace("/api/blob/", "");
+    const obj = await cdnR2.get(key);
+    if (!obj) return c.json({ error: "not found" }, 404);
+    const fileName = key.split("/").pop() ?? "download";
+    return new Response(obj.body, {
+      headers: {
+        "Content-Type": (obj as any).httpMetadata?.contentType ?? "application/octet-stream",
+        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Content-Length": String((obj as any).size ?? 0),
+        "Cache-Control": "public, max-age=86400, immutable",
+      },
+    });
+  });
 
   sdk.app
     .command(
